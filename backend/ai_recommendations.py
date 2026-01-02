@@ -1,6 +1,5 @@
 import os
 from typing import List, Optional
-from anthropic import Anthropic
 from sqlalchemy.orm import Session
 from database import User, Book, user_books
 import json
@@ -8,9 +7,16 @@ import json
 class AIRecommendationService:
     def __init__(self):
         # In production, use environment variable
+        self.client = None
         api_key = os.getenv("ANTHROPIC_API_KEY", "")
-        self.client = Anthropic(api_key=api_key) if api_key else None
-    
+        if api_key:
+            try:
+                from anthropic import Anthropic
+                self.client = Anthropic(api_key=api_key)
+            except Exception as e:
+                print(f"Warning: Could not initialize Anthropic client: {e}")
+                self.client = None
+                
     def get_user_reading_profile(self, db: Session, user_id: int) -> dict:
         """Build a comprehensive reading profile for the user"""
         # Get user's read books with ratings
