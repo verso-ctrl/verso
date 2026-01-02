@@ -207,45 +207,6 @@ def create_book(
     db.refresh(db_book)
     return db_book
 
-@app.get("/books/search-external")
-def search_external_books(
-    query: str,
-    limit: int = 20,
-    current_user: User = Depends(get_current_user)
-):
-    """Search Open Library for books"""
-    return book_service.search_books(query, max_results=limit)
-
-@app.post("/books/import-from-search")
-def import_book_from_search(
-    book_data: dict,
-    current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
-):
-    """Import a book from external search into our database"""
-    # Check if book already exists by ISBN
-    if book_data.get('isbn'):
-        existing = db.query(Book).filter(Book.isbn == book_data['isbn']).first()
-        if existing:
-            return existing
-    
-    # Create new book
-    db_book = Book(
-        title=book_data.get('title'),
-        author=book_data.get('author'),
-        isbn=book_data.get('isbn'),
-        description=book_data.get('description'),
-        cover_url=book_data.get('cover_url'),
-        published_year=book_data.get('published_year'),
-        genre=book_data.get('genre'),
-        page_count=book_data.get('page_count'),
-        publisher=book_data.get('publisher')
-    )
-    db.add(db_book)
-    db.commit()
-    db.refresh(db_book)
-    return db_book
-
 @app.get("/books", response_model=List[BookResponse])
 def get_books(
     skip: int = 0,
@@ -455,7 +416,44 @@ def get_review_likes(
     
     return {"count": len(likes)}
 
+@app.get("/books/search-external")
+def search_external_books(
+    query: str,
+    limit: int = 20,
+    current_user: User = Depends(get_current_user)
+):
+    """Search Open Library for books"""
+    return book_service.search_books(query, max_results=limit)
 
+@app.post("/books/import-from-search")
+def import_book_from_search(
+    book_data: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Import a book from external search into our database"""
+    # Check if book already exists by ISBN
+    if book_data.get('isbn'):
+        existing = db.query(Book).filter(Book.isbn == book_data['isbn']).first()
+        if existing:
+            return existing
+    
+    # Create new book
+    db_book = Book(
+        title=book_data.get('title'),
+        author=book_data.get('author'),
+        isbn=book_data.get('isbn'),
+        description=book_data.get('description'),
+        cover_url=book_data.get('cover_url'),
+        published_year=book_data.get('published_year'),
+        genre=book_data.get('genre'),
+        page_count=book_data.get('page_count'),
+        publisher=book_data.get('publisher')
+    )
+    db.add(db_book)
+    db.commit()
+    db.refresh(db_book)
+    return db_book
 
 # ==================== USER BOOKS ROUTES ====================
 

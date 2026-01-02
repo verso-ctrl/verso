@@ -11,5 +11,5 @@ anthropic==0.39.0
 requests==2.32.3
 aiosqlite==0.20.0
 email-validator==2.2.0
-psycopg2-binary==2.9.9
+psycopg[binary]==3.2.3
 python-dotenv==1.0.0

@@ -207,9 +207,11 @@ import os
 
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./verso.db")
 
-# Railway uses postgres:// but SQLAlchemy needs postgresql://
+# Railway uses postgres:// but SQLAlchemy needs postgresql+psycopg://
 if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg://", 1)
+elif DATABASE_URL.startswith("postgresql://") and "+psycopg" not in DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
 
 # SQLite needs special connect args
 if DATABASE_URL.startswith("sqlite"):
