@@ -28,15 +28,11 @@ app = FastAPI(title="Verso API", version="2.0.0")
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000", 
-        "http://localhost:5173",
-        os.getenv("FRONTEND_URL", ""),  # Production frontend URL
-        "*"  # Allow all origins for easier setup (tighten for production)
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],  # Allow all origins
+    allow_credentials=False,  # Must be False when using "*" origins
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # Initialize database on startup
