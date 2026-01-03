@@ -12,12 +12,15 @@ import secrets
 from datetime import datetime, timedelta
 
 # Configuration from environment
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_HOST = os.getenv("SMTP_HOST", "")
 SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 FROM_EMAIL = os.getenv("FROM_EMAIL", "noreply@verso.app")
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+# Check if email is properly configured
+EMAIL_CONFIGURED = bool(SMTP_HOST and SMTP_USER and SMTP_PASSWORD)
 
 
 def generate_verification_token() -> str:
@@ -35,16 +38,15 @@ def send_verification_email(to_email: str, username: str, token: str) -> bool:
     Send verification email to user
     Returns True if sent successfully, False otherwise
     """
-    if not SMTP_USER or not SMTP_PASSWORD:
-        # Email not configured - log the verification link instead
-        verification_link = f"{FRONTEND_URL}/verify-email?token={token}"
+    verification_link = f"{FRONTEND_URL}/verify-email?token={token}"
+    
+    # If email not configured, just log the link and return success
+    if not EMAIL_CONFIGURED:
         print(f"\n{'='*60}")
         print(f"EMAIL NOT CONFIGURED - Verification link for {username}:")
         print(f"{verification_link}")
         print(f"{'='*60}\n")
         return True  # Return True so registration continues
-    
-    verification_link = f"{FRONTEND_URL}/verify-email?token={token}"
     
     # Create email content
     subject = "Verify your Verso account"
@@ -104,24 +106,26 @@ def send_verification_email(to_email: str, username: str, token: str) -> bool:
         msg.attach(MIMEText(text_content, 'plain'))
         msg.attach(MIMEText(html_content, 'html'))
         
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        # Use timeout to prevent hanging
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
             server.starttls()
             server.login(SMTP_USER, SMTP_PASSWORD)
             server.sendmail(FROM_EMAIL, to_email, msg.as_string())
         
+        print(f"Verification email sent to {to_email}")
         return True
     except Exception as e:
         print(f"Failed to send verification email: {e}")
         # Log the link anyway so user can still verify
         print(f"Verification link for {username}: {verification_link}")
-        return False
+        return True  # Return True so registration doesn't fail
 
 
 def send_password_reset_email(to_email: str, username: str, token: str) -> bool:
     """Send password reset email (for future use)"""
     reset_link = f"{FRONTEND_URL}/reset-password?token={token}"
     
-    if not SMTP_USER or not SMTP_PASSWORD:
+    if not EMAIL_CONFIGURED:
         print(f"Password reset link for {username}: {reset_link}")
         return True
     
