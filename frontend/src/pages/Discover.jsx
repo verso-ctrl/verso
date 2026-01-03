@@ -26,9 +26,28 @@ function Discover() {
     if (searchParams.get('q')) {
       performSearch(searchParams.get('q'));
     } else {
-      loadPopularBooks();
+      loadTrendingBooks();
     }
   }, []);
+
+  const loadTrendingBooks = async () => {
+    setLoading(true);
+    try {
+      // Get trending/popular recent books from Open Library
+      const response = await booksAPI.getTrendingBooks(50);
+      setDisplayBooks(response.data || []);
+    } catch (error) {
+      console.error('Failed to load trending books:', error);
+      // Fallback to local popular books
+      try {
+        const fallback = await booksAPI.getPopularBooks(50);
+        setDisplayBooks(fallback.data || []);
+      } catch {
+        setDisplayBooks([]);
+      }
+    }
+    setLoading(false);
+  };
 
   const loadPopularBooks = async () => {
     setLoading(true);
@@ -44,7 +63,7 @@ function Discover() {
 
   const performSearch = async (query = searchQuery) => {
     if (!query.trim() && !filters.genre && !filters.yearFrom && !filters.yearTo) {
-      loadPopularBooks();
+      loadTrendingBooks();
       return;
     }
 

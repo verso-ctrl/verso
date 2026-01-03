@@ -25,6 +25,8 @@ export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   getCurrentUser: () => api.get('/auth/me'),
   updateProfile: (data) => api.put('/auth/me', data),
+  verifyEmail: (token) => api.post('/auth/verify-email', null, { params: { token } }),
+  resendVerification: (email) => api.post('/auth/resend-verification', null, { params: { email } }),
 };
 
 // Books API
@@ -48,6 +50,8 @@ export const booksAPI = {
     api.get(`/books/${bookId}/reviews`, { params: { limit } }),
   getPopularBooks: (limit = 10) =>
     api.get('/books/popular/top', { params: { limit } }),
+  getTrendingBooks: (limit = 40) =>
+    api.get('/books/trending', { params: { limit } }),
 };
 
 // Reviews API

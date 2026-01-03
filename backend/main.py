@@ -22,6 +22,11 @@ from auth import (
 )
 from ai_recommendations import ai_service
 from book_search import BookSearchService
+from email_service import (
+    generate_verification_token, 
+    get_token_expiry, 
+    send_verification_email
+)
 
 app = FastAPI(title="Verso API", version="2.0.0")
 
@@ -50,9 +55,9 @@ def read_root():
 
 # ==================== AUTH ROUTES ====================
 
-@app.post("/auth/register", response_model=Token, status_code=status.HTTP_201_CREATED)
+@app.post("/auth/register", status_code=status.HTTP_201_CREATED)
 def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user"""
+    """Register a new user with email verification"""
     # Check if username exists
     if db.query(User).filter(User.username == user_data.username).first():
         raise HTTPException(status_code=400, detail="Username already registered")
@@ -61,20 +66,85 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
     if db.query(User).filter(User.email == user_data.email).first():
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    # Create new user
+    # Generate verification token
+    verification_token = generate_verification_token()
+    
+    # Create new user (unverified)
     db_user = User(
         username=user_data.username,
         email=user_data.email,
         hashed_password=get_password_hash(user_data.password),
-        full_name=user_data.full_name
+        full_name=user_data.full_name,
+        is_verified=False,
+        verification_token=verification_token,
+        verification_token_expires=get_token_expiry()
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     
-    # Create access token
-    access_token = create_access_token(data={"sub": db_user.username})
-    return {"access_token": access_token, "token_type": "bearer"}
+    # Send verification email
+    send_verification_email(db_user.email, db_user.username, verification_token)
+    
+    return {
+        "message": "Registration successful. Please check your email to verify your account.",
+        "email": db_user.email,
+        "requires_verification": True
+    }
+
+
+@app.post("/auth/verify-email")
+def verify_email(token: str, db: Session = Depends(get_db)):
+    """Verify user's email address"""
+    user = db.query(User).filter(User.verification_token == token).first()
+    
+    if not user:
+        raise HTTPException(status_code=400, detail="Invalid verification token")
+    
+    if user.verification_token_expires and user.verification_token_expires < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Verification token has expired. Please request a new one.")
+    
+    if user.is_verified:
+        return {"message": "Email already verified", "already_verified": True}
+    
+    # Mark user as verified
+    user.is_verified = True
+    user.verification_token = None
+    user.verification_token_expires = None
+    db.commit()
+    
+    # Create access token so user can login immediately
+    access_token = create_access_token(data={"sub": user.username})
+    
+    return {
+        "message": "Email verified successfully",
+        "access_token": access_token,
+        "token_type": "bearer"
+    }
+
+
+@app.post("/auth/resend-verification")
+def resend_verification(email: str, db: Session = Depends(get_db)):
+    """Resend verification email"""
+    user = db.query(User).filter(User.email == email).first()
+    
+    if not user:
+        # Don't reveal if email exists
+        return {"message": "If an account exists with this email, a verification link has been sent."}
+    
+    if user.is_verified:
+        raise HTTPException(status_code=400, detail="Email is already verified")
+    
+    # Generate new token
+    user.verification_token = generate_verification_token()
+    user.verification_token_expires = get_token_expiry()
+    db.commit()
+    
+    # Send verification email
+    send_verification_email(user.email, user.username, user.verification_token)
+    
+    return {"message": "If an account exists with this email, a verification link has been sent."}
+
 
 @app.post("/auth/login", response_model=Token)
 def login(user_data: UserLogin, db: Session = Depends(get_db)):
@@ -85,6 +155,14 @@ def login(user_data: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Check if email is verified
+    if not user.is_verified:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Please verify your email before logging in",
+            headers={"X-Requires-Verification": "true"},
         )
     
     access_token = create_access_token(data={"sub": user.username})
@@ -349,6 +427,16 @@ def get_popular_books(limit: int = 10, db: Session = Depends(get_db)):
     ).limit(limit).all()
     return books
 
+
+@app.get("/books/trending")
+def get_trending_books(
+    limit: int = 40,
+    current_user: User = Depends(get_current_user)
+):
+    """Get trending books - recent popular books from Open Library"""
+    return book_service.get_trending_books(max_results=limit)
+
+
 @app.get("/reviews/recent")
 def get_recent_reviews(limit: int = 10, db: Session = Depends(get_db)):
     """Get recent reviews from all users"""
@@ -461,8 +549,6 @@ def get_review_likes(
     ).fetchall()
     
     return {"count": len(likes)}
-
-
 
 # ==================== USER BOOKS ROUTES ====================
 

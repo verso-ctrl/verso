@@ -247,6 +247,75 @@ class ISBNdbAPI:
             pass
         
         return None
+    def get_trending_books(self, max_results: int = 40) -> List[Dict]:
+        """
+        Get trending/popular books - recent books sorted by popularity
+        Uses Open Library's trending endpoint and search for recent popular fiction
+        """
+        books = []
+        
+        # Get current year for filtering
+        from datetime import datetime
+        current_year = datetime.now().year
+        
+        # Search for popular books from recent years (last 5 years)
+        # Use subject:fiction and sort by rating to get popular books
+        queries = [
+            f"subject:fiction first_publish_year:[{current_year-3} TO {current_year}]",
+            f"subject:thriller first_publish_year:[{current_year-3} TO {current_year}]",
+            f"subject:mystery first_publish_year:[{current_year-3} TO {current_year}]",
+            f"subject:fantasy first_publish_year:[{current_year-2} TO {current_year}]",
+            f"subject:romance first_publish_year:[{current_year-2} TO {current_year}]",
+        ]
+        
+        seen_titles = set()
+        
+        for query in queries:
+            if len(books) >= max_results:
+                break
+                
+            try:
+                url = f"{self.open_library_url}/search.json"
+                params = {
+                    'q': query,
+                    'limit': 15,
+                    'sort': 'rating',  # Sort by rating to get popular ones
+                    'fields': 'key,title,author_name,first_publish_year,isbn,cover_i,publisher,number_of_pages_median,subject,ratings_average,ratings_count'
+                }
+                
+                response = self.session.get(url, params=params, timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                
+                for doc in data.get('docs', []):
+                    # Skip duplicates
+                    title_key = doc.get('title', '').lower()
+                    if title_key in seen_titles:
+                        continue
+                    seen_titles.add(title_key)
+                    
+                    # Only include books with covers for better presentation
+                    if not doc.get('cover_i'):
+                        continue
+                    
+                    book = self._format_book(doc)
+                    if book:
+                        books.append(book)
+                        
+                    if len(books) >= max_results:
+                        break
+                        
+            except Exception as e:
+                print(f"Trending search error: {e}")
+                continue
+        
+        # Sort by year (newest first), then by rating
+        books.sort(key=lambda x: (
+            -(x.get('published_year') or 0),
+            -(x.get('average_rating') or 0)
+        ))
+        
+        return books[:max_results]
 
 
 # Usage example for your FastAPI app

@@ -49,6 +49,9 @@ class User(Base):
     points = Column(Integer, default=0)  # Gamification points
     reading_goal = Column(Integer, nullable=True)  # Annual reading goal
     reading_goal_year = Column(Integer, nullable=True)  # Year for the goal
+    is_verified = Column(Boolean, default=False)  # Email verification status
+    verification_token = Column(String(100), nullable=True)  # Email verification token
+    verification_token_expires = Column(DateTime, nullable=True)  # Token expiration
     created_at = Column(DateTime, default=datetime.utcnow)
     
     # Relationships

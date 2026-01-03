@@ -7,6 +7,7 @@ import { ToastProvider } from './components/Toast';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import VerifyEmail from './pages/VerifyEmail';
 import Home from './pages/Home';
 import Library from './pages/Library';
 import Discover from './pages/Discover';
@@ -35,6 +36,7 @@ function App() {
         <Routes>
           <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
           <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>

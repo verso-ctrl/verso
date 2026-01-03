@@ -1,19 +1,24 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { BookOpen, Eye, EyeOff, ArrowRight, Mail, RefreshCw } from 'lucide-react';
 import { useAuthStore } from '../stores';
+import { authAPI } from '../services/api';
 
 function Login() {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationEmail, setVerificationEmail] = useState('');
+  const [resending, setResending] = useState(false);
   const { login } = useAuthStore();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setNeedsVerification(false);
     setLoading(true);
 
     const result = await login(formData);
@@ -22,8 +27,24 @@ function Login() {
     if (result.success) {
       navigate('/');
     } else {
+      if (result.error.includes('verify your email')) {
+        setNeedsVerification(true);
+        setVerificationEmail(formData.username); // Could be username or email
+      }
       setError(result.error);
     }
+  };
+
+  const handleResendVerification = async () => {
+    setResending(true);
+    try {
+      await authAPI.resendVerification(verificationEmail);
+      setError('Verification email sent! Please check your inbox.');
+      setNeedsVerification(false);
+    } catch (err) {
+      // Don't reveal errors for security
+    }
+    setResending(false);
   };
 
   const handleChange = (e) => {
@@ -31,7 +52,7 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-cream-100 via-cream-50 to-primary-50 dark:from-ink-950 dark:via-ink-900 dark:to-ink-950 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-primary-50 dark:from-ink-950 dark:via-ink-900 dark:to-ink-950 flex flex-col">
       {/* Decorative elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary-200/30 dark:bg-primary-900/20 rounded-full blur-3xl"></div>
@@ -62,8 +83,35 @@ function Login() {
             </h2>
 
             {error && (
-              <div className="mb-6 p-4 bg-wine-50 dark:bg-wine-900/30 border border-wine-200 dark:border-wine-800 rounded-xl text-wine-700 dark:text-wine-300 text-sm animate-fade-in">
+              <div className={`mb-6 p-4 rounded-xl text-sm animate-fade-in ${
+                error.includes('sent') 
+                  ? 'bg-sage-50 dark:bg-sage-900/30 border border-sage-200 dark:border-sage-800 text-sage-700 dark:text-sage-300'
+                  : 'bg-wine-50 dark:bg-wine-900/30 border border-wine-200 dark:border-wine-800 text-wine-700 dark:text-wine-300'
+              }`}>
                 {error}
+                
+                {needsVerification && (
+                  <div className="mt-3 pt-3 border-t border-wine-200 dark:border-wine-700">
+                    <p className="text-xs mb-2">Enter your email to resend verification:</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="email"
+                        value={verificationEmail}
+                        onChange={(e) => setVerificationEmail(e.target.value)}
+                        className="flex-1 px-3 py-1.5 text-sm rounded-lg bg-white dark:bg-ink-800 border border-wine-300 dark:border-wine-700"
+                        placeholder="your@email.com"
+                      />
+                      <button
+                        onClick={handleResendVerification}
+                        disabled={resending}
+                        className="px-3 py-1.5 text-sm bg-wine-600 hover:bg-wine-700 text-white rounded-lg flex items-center gap-1 disabled:opacity-50"
+                      >
+                        {resending ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Mail className="h-3 w-3" />}
+                        Resend
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
