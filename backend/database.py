@@ -233,3 +233,42 @@ def get_db():
 
 def init_db():
     Base.metadata.create_all(bind=engine)
+    
+    # Run migrations for new columns
+    migrate_database()
+
+def migrate_database():
+    """Add new columns to existing tables if they don't exist"""
+    from sqlalchemy import inspect, text
+    
+    inspector = inspect(engine)
+    
+    # Check if users table exists
+    if 'users' in inspector.get_table_names():
+        existing_columns = [col['name'] for col in inspector.get_columns('users')]
+        
+        with engine.connect() as conn:
+            # Add email verification columns if they don't exist
+            if 'is_verified' not in existing_columns:
+                try:
+                    conn.execute(text('ALTER TABLE users ADD COLUMN is_verified BOOLEAN DEFAULT TRUE'))
+                    conn.commit()
+                    print("Added is_verified column")
+                except Exception as e:
+                    print(f"Could not add is_verified column: {e}")
+            
+            if 'verification_token' not in existing_columns:
+                try:
+                    conn.execute(text('ALTER TABLE users ADD COLUMN verification_token VARCHAR(100)'))
+                    conn.commit()
+                    print("Added verification_token column")
+                except Exception as e:
+                    print(f"Could not add verification_token column: {e}")
+            
+            if 'verification_token_expires' not in existing_columns:
+                try:
+                    conn.execute(text('ALTER TABLE users ADD COLUMN verification_token_expires TIMESTAMP'))
+                    conn.commit()
+                    print("Added verification_token_expires column")
+                except Exception as e:
+                    print(f"Could not add verification_token_expires column: {e}")
