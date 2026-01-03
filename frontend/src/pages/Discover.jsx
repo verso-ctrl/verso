@@ -58,20 +58,19 @@ function Discover() {
         searchTerm = searchTerm ? `${searchTerm} ${filters.genre}` : filters.genre;
       }
       
-      const response = await booksAPI.searchExternal(searchTerm || 'popular fiction', 100);
+      // Pass year filters to API for server-side filtering
+      const yearFrom = filters.yearFrom ? parseInt(filters.yearFrom) : null;
+      const yearTo = filters.yearTo ? parseInt(filters.yearTo) : null;
+      
+      const response = await booksAPI.searchExternal(
+        searchTerm || 'popular fiction', 
+        100,
+        yearFrom,
+        yearTo
+      );
       let results = response.data || [];
       
-      // Apply client-side filters for year range
-      if (filters.yearFrom) {
-        results = results.filter(book => 
-          book.published_year && book.published_year >= parseInt(filters.yearFrom)
-        );
-      }
-      if (filters.yearTo) {
-        results = results.filter(book => 
-          book.published_year && book.published_year <= parseInt(filters.yearTo)
-        );
-      }
+      // Additional client-side filters (rating, etc.)
       if (filters.minRating) {
         results = results.filter(book => 
           book.average_rating && book.average_rating >= parseFloat(filters.minRating)

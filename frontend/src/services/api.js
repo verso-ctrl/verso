@@ -33,8 +33,15 @@ export const booksAPI = {
   getBook: (id) => api.get(`/books/${id}`),
   createBook: (data) => api.post('/books', data),
   searchBooks: (query) => api.get('/books', { params: { search: query } }),
-  searchExternal: (query, limit = 20) => 
-    api.get('/books/search-external', { params: { query, limit } }),
+  searchExternal: (query, limit = 40, yearFrom = null, yearTo = null) => 
+    api.get('/books/search-external', { 
+      params: { 
+        query, 
+        limit,
+        year_from: yearFrom || undefined,
+        year_to: yearTo || undefined
+      } 
+    }),
   importBook: (bookData) => 
     api.post('/books/import-from-search', bookData),
   getBookReviews: (bookId, limit = 20) =>

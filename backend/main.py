@@ -202,14 +202,26 @@ def create_book(
     db.commit()
     db.refresh(db_book)
     return db_book
+
 @app.get("/books/search-external")
 def search_external_books(
     query: str,
-    limit: int = 20,
+    limit: int = 40,
+    year_from: Optional[int] = None,
+    year_to: Optional[int] = None,
     current_user: User = Depends(get_current_user)
 ):
-    """Search Open Library for books"""
-    return book_service.search_books(query, max_results=limit)
+    """Search Open Library for books with optional year filtering"""
+    # Build enhanced query with year range
+    search_query = query
+    if year_from and year_to:
+        search_query = f"{query} first_publish_year:[{year_from} TO {year_to}]"
+    elif year_from:
+        search_query = f"{query} first_publish_year:[{year_from} TO *]"
+    elif year_to:
+        search_query = f"{query} first_publish_year:[* TO {year_to}]"
+    
+    return book_service.search_books(search_query, max_results=limit)
 
 @app.post("/books/import-from-search")
 def import_book_from_search(
@@ -449,6 +461,7 @@ def get_review_likes(
     ).fetchall()
     
     return {"count": len(likes)}
+
 
 
 # ==================== USER BOOKS ROUTES ====================

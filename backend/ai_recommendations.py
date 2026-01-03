@@ -16,7 +16,7 @@ class AIRecommendationService:
             except Exception as e:
                 print(f"Warning: Could not initialize Anthropic client: {e}")
                 self.client = None
-                
+    
     def get_user_reading_profile(self, db: Session, user_id: int) -> dict:
         """Build a comprehensive reading profile for the user"""
         # Get user's read books with ratings
@@ -130,7 +130,7 @@ Format your response as a JSON array of objects with keys: title, author, genre,
         return '\n'.join(formatted)
     
     def _get_simple_recommendations(self, db: Session, user_id: int, count: int) -> List[dict]:
-        """Fallback recommendations based on genre matching"""
+        """Fallback recommendations based on genre matching or popular books"""
         # Get user's favorite genres
         read_books = db.execute(
             user_books.select().where(user_books.c.user_id == user_id)
@@ -145,10 +145,27 @@ Format your response as a JSON array of objects with keys: title, author, genre,
         # Get books in similar genres that user hasn't read
         read_book_ids = [ub.book_id for ub in read_books]
         
-        similar_books = db.query(Book).filter(
-            Book.genre.in_(genres) if genres else True,
-            Book.id.notin_(read_book_ids) if read_book_ids else True
-        ).order_by(Book.average_rating.desc()).limit(count).all()
+        if genres:
+            # User has books with genres - find similar
+            similar_books = db.query(Book).filter(
+                Book.genre.in_(genres),
+                Book.id.notin_(read_book_ids) if read_book_ids else True
+            ).order_by(Book.average_rating.desc()).limit(count).all()
+        else:
+            # No genre data - just get highest rated books user hasn't read
+            similar_books = db.query(Book).filter(
+                Book.id.notin_(read_book_ids) if read_book_ids else True
+            ).order_by(Book.average_rating.desc()).limit(count).all()
+        
+        if not similar_books:
+            # No books in database at all - return helpful message
+            return [{
+                'title': 'Start Your Journey!',
+                'author': 'Verso',
+                'genre': 'Getting Started',
+                'description': 'Search for books you love in Discover and add them to your library. Once you have some books, we can give you personalized recommendations!',
+                'reasoning': 'Add some books to get personalized recommendations'
+            }]
         
         return [
             {
@@ -156,7 +173,7 @@ Format your response as a JSON array of objects with keys: title, author, genre,
                 'author': book.author,
                 'genre': book.genre,
                 'description': book.description or 'No description available',
-                'reasoning': f'Similar genre to your favorite books'
+                'reasoning': 'Highly rated book you might enjoy' if not genres else 'Similar genre to your favorite books'
             }
             for book in similar_books
         ]
