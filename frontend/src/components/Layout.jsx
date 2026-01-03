@@ -22,7 +22,7 @@ function Layout() {
 
   // Primary navigation - most used features
   const primaryNav = [
-    { path: '/', icon: Home, label: 'Home' },
+    { path: '/home', icon: Home, label: 'Home' },
     { path: '/library', icon: Library, label: 'My Library' },
     { path: '/discover', icon: Compass, label: 'Discover' },
     { path: '/circles', icon: Trophy, label: 'Circles' },
@@ -55,7 +55,7 @@ function Layout() {
       <aside className="hidden lg:flex flex-col fixed left-0 top-0 h-full w-64 bg-white dark:bg-ink-900 border-r border-cream-200 dark:border-ink-800 z-40">
         {/* Logo */}
         <div className="p-5 border-b border-cream-200 dark:border-ink-800">
-          <Link to="/" className="flex items-center gap-3">
+          <Link to="/home" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-primary-700 rounded-xl flex items-center justify-center shadow-sm">
               <BookOpen className="h-5 w-5 text-white" />
             </div>
@@ -160,7 +160,7 @@ function Layout() {
       {/* Mobile Header */}
       <header className="lg:hidden bg-white/95 dark:bg-ink-900/95 backdrop-blur-lg border-b border-cream-200 dark:border-ink-800 sticky top-0 z-50">
         <div className="flex justify-between items-center h-14 px-4">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/home" className="flex items-center gap-2">
             <div className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-700 rounded-lg flex items-center justify-center">
               <BookOpen className="h-4 w-4 text-white" />
             </div>
@@ -286,7 +286,7 @@ function Layout() {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-ink-900/95 backdrop-blur-lg border-t border-cream-200 dark:border-ink-800 z-40 safe-area-pb">
         <div className="grid grid-cols-5 max-w-lg mx-auto">
           {[
-            { path: '/', icon: Home, label: 'Home' },
+            { path: '/home', icon: Home, label: 'Home' },
             { path: '/library', icon: Library, label: 'Library' },
             { path: '/circles', icon: Trophy, label: 'Circles' },
             { path: '/discover', icon: Compass, label: 'Discover' },

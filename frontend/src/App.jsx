@@ -5,6 +5,7 @@ import { ToastProvider } from './components/Toast';
 
 // Components
 import Layout from './components/Layout';
+import Landing from './pages/Landing';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import VerifyEmail from './pages/VerifyEmail';
@@ -34,13 +35,16 @@ function App() {
     <ToastProvider>
       <Router>
         <Routes>
-          <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
-          <Route path="/register" element={isAuthenticated ? <Navigate to="/" /> : <Register />} />
+          {/* Public routes */}
+          <Route path="/" element={isAuthenticated ? <Navigate to="/home" /> : <Landing />} />
+          <Route path="/login" element={isAuthenticated ? <Navigate to="/home" /> : <Login />} />
+          <Route path="/register" element={isAuthenticated ? <Navigate to="/home" /> : <Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           
+          {/* Protected routes */}
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
-              <Route path="/" element={<Home />} />
+              <Route path="/home" element={<Home />} />
               <Route path="/library" element={<Library />} />
               <Route path="/discover" element={<Discover />} />
               <Route path="/circles" element={<Circles />} />
@@ -64,7 +68,7 @@ function ProtectedRoute() {
   const { isAuthenticated } = useAuthStore();
   
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/" />;
   }
   
   return <Outlet />;
