@@ -32,7 +32,7 @@ function Recommendations() {
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <h1 className="text-3xl font-serif font-bold text-ink-900 dark:text-cream-100">
-            AI Recommendations
+            AI Recommendations [NOT WORKING CURRENTLY]
           </h1>
         </div>
         <p className="text-ink-500 dark:text-ink-400">
